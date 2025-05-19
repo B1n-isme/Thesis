@@ -1,0 +1,13 @@
+matplotlib
+numpy
+pandas
+seaborn
+statsmodels
+scikit-learn
+scipy
+torch
+yfinance
+pytrends
+lightning
+sktime
+optuna
