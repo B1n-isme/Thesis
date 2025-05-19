@@ -2,3 +2,4 @@
 venv/
 *.log
 .env
+data/raw/augmento_btc.csv
