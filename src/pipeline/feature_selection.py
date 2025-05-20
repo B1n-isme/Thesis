@@ -11,22 +11,6 @@ from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
 
 
-def generate_windowed_feature_names(
-    original_feature_names: List[str], 
-    lookback_window: int
-) -> List[str]:
-    """
-    Generates descriptive names for features in a windowed dataset.
-    Example: if original_feature_names = ['A', 'B'] and lookback_window = 2,
-    returns ['A_t-1', 'B_t-1', 'A_t-0', 'B_t-0'] (assuming t-0 is most recent).
-    """
-    windowed_names = []
-    for i in range(lookback_window):
-        for fname in original_feature_names:
-            windowed_names.append(f"{fname}_t-{lookback_window - 1 - i}")
-    return windowed_names
-
-
 def select_features_and_transform(
     X_train_w: np.ndarray, 
     y_train_w: np.ndarray, 
@@ -67,17 +51,12 @@ def select_features_and_transform(
     if n_timesteps != lookback_window:
         raise ValueError(f"X_train_w's second dimension ({n_timesteps}) does not match lookback_window ({lookback_window}).")
 
-    X_train_reshaped = X_train_w.reshape(n_samples_train, -1)
-    
-    n_samples_test, _, _ = X_test_w.shape
-    X_test_reshaped = X_test_w.reshape(n_samples_test, -1)
-
-    if X_train_reshaped.shape[1] != n_timesteps * n_original_features:
-         raise ValueError("Reshaping failed to produce expected number of features for training data.")
-
+    # Use only the last timestep's features for selection
+    X_train_last = X_train_w[:, -1, :]
+    X_test_last = X_test_w[:, -1, :]
 
     print(f"\n--- Feature Selection using {method.upper()} ---")
-    print(f"Original number of windowed features: {X_train_reshaped.shape[1]}")
+    print(f"Original number of features: {X_train_last.shape[1]}")
 
     model: Any
     if method == 'rf':
@@ -102,12 +81,8 @@ def select_features_and_transform(
         y_train_w = y_train_w.ravel()
 
     print(f"Fitting {method.upper()} model for feature importances...")
-    model.fit(X_train_reshaped, y_train_w)
+    model.fit(X_train_last, y_train_w)
 
-    # SelectFromModel
-    # If max_features_to_select is None, SelectFromModel with threshold='median' (default) or 'mean' might be good.
-    # Or, we can specify a threshold based on importances.
-    # For now, if max_features_to_select is provided, it uses that. Otherwise, it uses 'median'.
     threshold_for_sfm = 'median' if max_features_to_select is None else -np.inf
     
     selector = SelectFromModel(
@@ -117,20 +92,14 @@ def select_features_and_transform(
         max_features=max_features_to_select
     )
 
-    X_train_selected = selector.transform(X_train_reshaped)
-    X_test_selected = selector.transform(X_test_reshaped)
+    X_train_selected = selector.transform(X_train_last)
+    X_test_selected = selector.transform(X_test_last)
 
     print(f"Number of features selected: {X_train_selected.shape[1]}")
 
-    # Get names of selected features
-    full_windowed_feature_names = generate_windowed_feature_names(
-        original_processed_feature_names, 
-        lookback_window
-    )
-    
     selected_mask = selector.get_support()
     selected_feature_names = [
-        full_windowed_feature_names[i] 
+        original_processed_feature_names[i] 
         for i, selected in enumerate(selected_mask) if selected
     ]
 

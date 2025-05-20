@@ -135,11 +135,12 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
 
     # --- 2. Cross-Validation Loop with Correct Transformation Handling ---
     print("\n--- 2. Cross-Validation Folds Processing ---")
-    processed_X_train_folds: List[pd.DataFrame] = []
-    processed_y_train_folds: List[pd.Series] = []
-    processed_X_val_folds: List[pd.DataFrame] = []
-    processed_y_val_folds: List[pd.Series] = []
-    fold_transformers_and_scalers: List[Dict[str, Any]] = []
+    # Remove unused lists for processed folds
+    # processed_X_train_folds: List[pd.DataFrame] = []
+    # processed_y_train_folds: List[pd.Series] = []
+    # processed_X_val_folds: List[pd.DataFrame] = []
+    # processed_y_val_folds: List[pd.Series] = []
+    # fold_transformers_and_scalers: List[Dict[str, Any]] = []
 
     # New lists for windowed CV data if lookback_window is specified
     windowed_cv_folds_list: List[Dict[str, Any]] = []
@@ -159,8 +160,6 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
             continue
 
         # --- 2a. Fit Skewness Transformers on X_train_fold & Apply to X_train_fold --- 
-        # The fit_and_apply_skewness_correction handles fitting on X_train_fold 
-        # and then applying to a copy of X_train_fold internally for the first output.
         X_train_fold_skew_transformed, fold_skew_transformers = fit_and_apply_skewness_correction(
             data_to_transform=X_train_fold, # This will be copied inside the function
             fit_reference_data=X_train_fold
@@ -184,11 +183,12 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
             fitted_scaler=fold_scaler
         )
 
-        processed_X_train_folds.append(X_train_fold_final)
-        processed_y_train_folds.append(y_train_fold)
-        processed_X_val_folds.append(X_val_fold_final)
-        processed_y_val_folds.append(y_val_fold)
-        fold_transformers_and_scalers.append({'skew_transformers': fold_skew_transformers, 'scaler': fold_scaler})
+        # Remove appending to unused lists
+        # processed_X_train_folds.append(X_train_fold_final)
+        # processed_y_train_folds.append(y_train_fold)
+        # processed_X_val_folds.append(X_val_fold_final)
+        # processed_y_val_folds.append(y_val_fold)
+        # fold_transformers_and_scalers.append({'skew_transformers': fold_skew_transformers, 'scaler': fold_scaler})
 
         # --- 2e. Apply Windowing to Fold Data (if lookback_window is specified) ---
         if lookback_window is not None and lookback_window > 0:
@@ -309,69 +309,35 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
     return results
 
 if __name__ == "__main__":
-    print("Running data processing as a script...")
+    print("Running data processing...")
     lookback = 5
     horizon_pred = 1
     stride = 1
-    processed_data = run_data_processing(
+    processed = run_data_processing(
         data_path='data/final/dataset.csv',
-        lookback_window=lookback, 
+        lookback_window=lookback,
         prediction_horizon=horizon_pred,
         stride=stride
     )
 
-    print("\n--- Script Execution Summary ---")
-    print(f"Processed feature names (X_trainval_final_for_model columns): {processed_data.get('processed_feature_names')[:5]}... (first 5)")
-    if 'processed_X_train_folds' in processed_data:
-        print(f"Processed {len(processed_data['processed_X_train_folds'])} original CV folds.")
-    else:
-        print("No 'processed_X_train_folds' in results, check processing steps if CV folds were expected.")
+    print("\n--- Data Processing Results ---")
+    print(f"Processed features: {processed['processed_feature_names'][:5]} ... (total: {len(processed['processed_feature_names'])})")
+    print(f"y_test shape: {processed['y_test'].shape}")
+    print(f"Original target series shape: {processed['original_target_series'].shape}")
+    print(f"y_was_transformed: {processed['y_was_transformed']}")
 
-    if 'windowed_cv_folds' in processed_data:
-        print(f"Windowing attempted with lookback={processed_data.get('lookback_window_used')} and horizon={processed_data.get('prediction_horizon_used')}.")
-        print(f"Generated {len(processed_data['windowed_cv_folds'])} windowed CV folds.")
-        if processed_data['windowed_cv_folds']:
-            # Check if the first fold has data to prevent error if a fold failed windowing and was skipped
-            if processed_data['windowed_cv_folds'][0]['X_train_w'].size > 0:
-                first_windowed_fold = processed_data['windowed_cv_folds'][0]
-                print(f"  Example Windowed CV Fold 0 (Train): X_w shape {first_windowed_fold['X_train_w'].shape}, y_w shape {first_windowed_fold['y_train_w'].shape}")
-                print(f"  Example Windowed CV Fold 0 (Val):   X_w shape {first_windowed_fold['X_val_w'].shape}, y_w shape {first_windowed_fold['y_val_w'].shape}")
-            else:
-                print("  Example Windowed CV Fold 0 resulted in empty training data after windowing.")
-        else:
-            print("  No windowed CV folds were successfully generated (list is empty).")
-
-    print("\nAccess original processed data components via the returned dictionary, e.g.:")
-    print("  processed_data['X_trainval_final_for_model'].head()")
-    print("  processed_data['X_test_final_for_evaluation'].head()")
-
-    if 'windowed_trainval_data' in processed_data and processed_data['windowed_trainval_data']:
-        print("\nAccess windowed train/val data:")
-        print(f"  Shape of windowed trainval X: {processed_data['windowed_trainval_data']['X_w'].shape}")
-        print(f"  Shape of windowed trainval y: {processed_data['windowed_trainval_data']['y_w'].shape}")
-    else:
-        print("\nNo windowed trainval data generated (or lookback_window not set).")
-
-    if 'windowed_test_data' in processed_data and processed_data['windowed_test_data']:
-        print("\nAccess windowed test data:")
-        print(f"  Shape of windowed test X: {processed_data['windowed_test_data']['X_w'].shape}")
-        print(f"  Shape of windowed test y: {processed_data['windowed_test_data']['y_w'].shape}")
-    else:
-        print("\nNo windowed test data generated (or lookback_window not set).")
-
-    print("\n--- Reminder on Target Variable (y) ---")
-    print("The y variable used for modeling (potentially 'y_transformed_for_modeling') ")
-    print("was used throughout the splitting and alignment process.")
-    print("If 'y_transformed_for_modeling' involved differencing or log transforms,")
-    print("ensure predictions are appropriately inverse-transformed for final evaluation if needed.")
-    if 'y_transformed_for_modeling' in processed_data:
-        y_model = processed_data['y_transformed_for_modeling']
-        print(f"The target variable for modeling ('y') has {len(y_model)} samples, period: {y_model.index.min()} to {y_model.index.max()}")
-        if len(y_model) < len(processed_data['original_target_series']):
-            print("  Note: This target variable might be shorter than original_target_series due to transformations like .diff().")
-
-    print("Original y_orig_series head:")
-    print(processed_data['original_target_series'].head())
-    print("y_test head (target for final model evaluation):")
-    print(processed_data['y_test'].head())
-    print(f"  Shape: {processed_data['y_test'].shape}")
+    if 'windowed_trainval_data' in processed:
+        Xw = processed['windowed_trainval_data']['X_w']
+        yw = processed['windowed_trainval_data']['y_w']
+        print(f"Windowed trainval X shape: {Xw.shape}, y shape: {yw.shape}")
+    if 'windowed_test_data' in processed:
+        Xw = processed['windowed_test_data']['X_w']
+        yw = processed['windowed_test_data']['y_w']
+        print(f"Windowed test X shape: {Xw.shape}, y shape: {yw.shape}")
+    if 'windowed_cv_folds' in processed:
+        print(f"Windowed CV folds: {len(processed['windowed_cv_folds'])}")
+        if processed['windowed_cv_folds']:
+            fold = processed['windowed_cv_folds'][0]
+            print(f"  Example fold train X: {fold['X_train_w'].shape}, y: {fold['y_train_w'].shape}")
+            print(f"  Example fold val X: {fold['X_val_w'].shape}, y: {fold['y_val_w'].shape}")
+    print("\nAccess any result via the returned dictionary, e.g. processed['y_test'], processed['windowed_trainval_data']['X_w']")

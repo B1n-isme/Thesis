@@ -3,3 +3,7 @@ venv/
 *.log
 .env
 data/raw/augmento_btc.csv
+__pycache__/
+lightning_logs/
+.cursor/
+checkpoints/
