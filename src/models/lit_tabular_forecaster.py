@@ -26,11 +26,15 @@ class LitTabularForecaster(L.LightningModule):
 
     def _common_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         x, y = batch
-        y_hat = self(x)
-        if y_hat.ndim == 2 and y_hat.shape[1] == 1:
-            y_hat = y_hat.squeeze(1)
-        if y.ndim == 1 and y_hat.ndim == 0:
-             y_hat = y_hat.unsqueeze(0)
+        y_hat = self(x)  # shape: (batch_size, pred_len) for multi-step
+
+        # Optional: Ensure both have same dtype (e.g., float32)
+        y = y.to(y_hat.dtype)
+
+        # No need to squeeze unless predicting single step and expecting 1D output
+        if y_hat.shape[1] == 1:
+            y_hat = y_hat.squeeze(1)  # optional, for compatibility with 1D metrics
+
         loss = self.loss_fn(y_hat, y)
         return loss
 

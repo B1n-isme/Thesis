@@ -7,6 +7,7 @@ def create_windowed_dataset( # Renamed to indicate it's an updated version
     target_data: pd.Series,
     lookback_window: int,
     horizon: int = 1,
+    pred_len: int = 1,
     stride: int = 1,
     dropna_target: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, pd.Index]:
@@ -130,32 +131,43 @@ def create_windowed_dataset( # Renamed to indicate it's an updated version
     for i in range(0, num_possible_starts, stride):
         feature_window_start_idx = i
         feature_window_end_idx = i + lookback_window
-        
-        # The target is `horizon` steps *after* the end of the feature window
-        target_val_idx = feature_window_end_idx + horizon - 1
-        
-        # This check should ideally not be needed if num_possible_starts is correct,
-        # but it's a safeguard, especially if stride causes overshooting in some edge logic.
-        if target_val_idx >= len(target_s):
-            break 
+
+        # The target starts `horizon` steps after the end of the lookback window
+        target_start_idx = feature_window_end_idx + horizon - 1
+        target_end_idx = target_start_idx + pred_len  # collect `pred_len` steps ahead
+
+        # Ensure we don't go out of bounds
+        if target_end_idx > len(target_s):
+            break
 
         current_X_window = features_df.iloc[feature_window_start_idx:feature_window_end_idx].values
-        current_y_value = target_s.iloc[target_val_idx]
+        current_y_values = target_s.iloc[target_start_idx:target_end_idx]
+
         # Note on extensibility for multi-target:
-        # If target_s were a DataFrame, current_y_value would be a Series.
-        # You might then use current_y_value.values to get a NumPy array for y_list.
+        # If target_s is a DataFrame, current_y_values will be a DataFrame row(s),
+        # and you can use .values to convert to NumPy arrays.
 
         # (Suggestion 2: Handle NaNs in target)
         if dropna_target:
-            # pd.isna() handles scalars, Series, etc. .any() ensures if current_y_value is a Series (multi-target),
-            # it drops if *any* of the targets are NaN. For scalar, it's direct.
-            if pd.isna(current_y_value) if np.isscalar(current_y_value) else pd.isna(current_y_value).any():
-                continue
-        
-        current_target_original_index = target_s.index[target_val_idx]
+            # Check if any of the target values are NaN
+            if isinstance(current_y_values, pd.Series):
+                # For single-feature target
+                if pd.isna(current_y_values).any():
+                    continue
+            elif isinstance(current_y_values, pd.DataFrame):
+                # For multi-feature targets
+                if pd.isna(current_y_values).any().any():
+                    continue
+            else:
+                # Scalar or unsupported type
+                if pd.isna(current_y_values):
+                    continue
+
+        # Use the last target index for alignment tracking
+        current_target_original_index = target_s.index[target_start_idx:target_end_idx]
 
         X_list.append(current_X_window)
-        y_list.append(current_y_value)
+        y_list.append(current_y_values.values if isinstance(current_y_values, (pd.Series, pd.DataFrame)) else current_y_values)
         target_idx_list.append(current_target_original_index)
 
     if not X_list:

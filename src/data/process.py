@@ -19,6 +19,7 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
                         gap_for_tscv: int = 0,
                         lookback_window: Optional[int] = None,
                         prediction_horizon: int = 1,
+                        pred_len: int = 6,
                         stride: int = 1
                         ) -> Dict[str, Any]:
     """
@@ -195,10 +196,10 @@ def run_data_processing(data_path: str = 'data/final/dataset.csv',
             print(f"  Applying windowing to Fold {fold_num} (lookback={lookback_window}, horizon={prediction_horizon})")
             try:
                 X_train_fold_w, y_train_fold_w, y_idx_train_fold_w = create_windowed_dataset(
-                    X_train_fold_final, y_train_fold, lookback_window, prediction_horizon, stride
+                    X_train_fold_final, y_train_fold, lookback_window, prediction_horizon, pred_len, stride
                 )
                 X_val_fold_w, y_val_fold_w, y_idx_val_fold_w = create_windowed_dataset(
-                    X_val_fold_final, y_val_fold, lookback_window, prediction_horizon, stride
+                    X_val_fold_final, y_val_fold, lookback_window, prediction_horizon, pred_len, stride
                 )
                 # Only add if both train and val windowing were successful and produced non-empty arrays for X
                 if X_train_fold_w.size > 0 and X_val_fold_w.size > 0:
