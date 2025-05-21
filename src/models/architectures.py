@@ -19,7 +19,7 @@ class MLP(nn.Module):
 
     def forward(self, x):
         batch_size = x.shape[0]
-        # Flatten input: (batch_size, seq_len, n_features) -> (batch_size, seq_len * n_features)
+        # Always flatten input: (batch_size, seq_len, n_features) -> (batch_size, seq_len * n_features)
         x = x.view(batch_size, -1)
 
         x = F.relu(self.fc1(x))

@@ -15,6 +15,7 @@ logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
 
 LOOKBACK_WINDOW = 7
 PREDICTION_HORIZON = 7
+PREDICTION_LENGTH = 5
 STRIDE = 2
 N_CV_SPLITS = 3
 HPO_N_TRIALS = 15
@@ -33,6 +34,7 @@ def main():
     data_artifacts = run_data_processing(
         lookback_window=LOOKBACK_WINDOW,
         prediction_horizon=PREDICTION_HORIZON,
+        pred_len=PREDICTION_LENGTH,
         stride=STRIDE,
         n_cv_splits_for_tscv=N_CV_SPLITS
     )
@@ -132,7 +134,6 @@ def main():
     datamodule = TabularWindowedDataModule(
         X_train=X_train, y_train=y_train,
         X_val=X_val, y_val=y_val,
-        lookback_window=LOOKBACK_WINDOW,
         n_features=n_selected_features,
         batch_size=batch_size,
         num_workers=os.cpu_count()
@@ -142,10 +143,20 @@ def main():
     final_input_size = LOOKBACK_WINDOW * n_selected_features
 
     # Create model based on best hyperparameters
-    model = MLP(
-        input_size=final_input_size,
+    # model = MLP(
+    #     seq_len=LOOKBACK_WINDOW,
+    #     n_features=n_selected_features,
+    #     hidden_size=best_hparams['hidden_size'],
+    #     pred_len=PREDICTION_HORIZON,
+    #     output_size=1
+    # )
+    model = LSTMModel(
+        input_size=n_selected_features,
         hidden_size=best_hparams['hidden_size'],
-        output_size=1
+        pred_len=PREDICTION_HORIZON,
+        output_size=1,
+        num_layers=1,
+        dropout=0.0
     )
     final_model = LitTabularForecaster(
         model=model,
@@ -170,7 +181,6 @@ def main():
             X_train=None, y_train=None,
             X_val=None, y_val=None,
             X_test=windowed_test['X_w'], y_test=y_test_w,
-            lookback_window=LOOKBACK_WINDOW,
             n_features=n_selected_features,
             batch_size=batch_size,
             num_workers=os.cpu_count()

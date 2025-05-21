@@ -76,12 +76,14 @@ def select_features_and_transform(
     else:
         raise ValueError(f"Unsupported feature selection method: {method}. Choose 'rf', 'lgbm', or 'xgb'.")
 
-    # Ensure y_train_w is 1D
-    if y_train_w.ndim > 1:
-        y_train_w = y_train_w.ravel()
+    # If y_train_w is 2D, reduce to 1D for feature selection
+    if y_train_w.ndim == 2:
+        y_train_for_fs = y_train_w[:, 0]
+    else:
+        y_train_for_fs = y_train_w
 
     print(f"Fitting {method.upper()} model for feature importances...")
-    model.fit(X_train_last, y_train_w)
+    model.fit(X_train_last, y_train_for_fs)
 
     threshold_for_sfm = 'median' if max_features_to_select is None else -np.inf
     
@@ -111,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_path", type=str, default='data/final/dataset.csv', help="Path to the input dataset CSV file.")
     parser.add_argument("--lookback_window", type=int, default=5, help="Lookback window size for creating sequences.")
     parser.add_argument("--prediction_horizon", type=int, default=1, help="Prediction horizon.")
+    parser.add_argument("--pred_len", type=int, default=1, help="Prediction length.")
     parser.add_argument("--stride", type=int, default=1, help="Stride for windowing.")
     
     parser.add_argument("--method", type=str, default='rf', choices=['rf', 'lgbm', 'xgb'], help="Feature selection method: 'rf' (Random Forest), 'lgbm' (LightGBM), 'xgb' (XGBoost).")
@@ -127,6 +130,7 @@ if __name__ == "__main__":
         n_cv_splits_for_tscv=3, # Standard CV splits, not directly used here but processed_data expects it
         lookback_window=args.lookback_window,
         prediction_horizon=args.prediction_horizon,
+        pred_len=args.pred_len,
         stride=args.stride
     )
 

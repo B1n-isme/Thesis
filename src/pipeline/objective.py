@@ -35,12 +35,21 @@ def objective(trial: optuna.Trial,
             continue
 
         # Create model based on best hyperparameters
-        model = MLP(
-            input_size=input_size,
+        # model = MLP(
+        #     seq_len=current_lookback_window,
+        #     n_features=n_features,
+        #     hidden_size=hidden_size,
+        #     pred_len=y_train_w.shape[1],
+        #     output_size=1
+        # )
+        model = LSTMModel(
+            input_size=n_features,
             hidden_size=hidden_size,
-            output_size=1
+            pred_len=y_train_w.shape[1],
+            output_size=1,
+            num_layers=1,
+            dropout=0.0
         )
-        
         final_model = LitTabularForecaster(
             model=model,
             learning_rate=learning_rate
@@ -49,7 +58,6 @@ def objective(trial: optuna.Trial,
         datamodule = TabularWindowedDataModule(
             X_train=X_train_w, y_train=y_train_w,
             X_val=X_val_w, y_val=y_val_w,
-            lookback_window=current_lookback_window,
             n_features=n_features,
             batch_size=batch_size,
             num_workers=os.cpu_count()

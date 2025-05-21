@@ -11,3 +11,6 @@ pytrends
 lightning
 sktime
 optuna
+neuralforecast
+hyperopt
+torchvision

@@ -26,14 +26,18 @@ class LitTabularForecaster(L.LightningModule):
 
     def _common_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
         x, y = batch
-        y_hat = self(x)  # shape: (batch_size, pred_len) for multi-step
+        y_hat = self(x)  # shape: (batch_size, pred_len) or (batch_size, pred_len, 1)
 
         # Optional: Ensure both have same dtype (e.g., float32)
         y = y.to(y_hat.dtype)
 
+        # Squeeze last dimension if y_hat is (batch, pred_len, 1) and y is (batch, pred_len)
+        if y_hat.ndim == 3 and y_hat.shape[-1] == 1 and y.ndim == 2:
+            y_hat = y_hat.squeeze(-1)
+
         # No need to squeeze unless predicting single step and expecting 1D output
         if y_hat.shape[1] == 1:
-            y_hat = y_hat.squeeze(1)  # optional, for compatibility with 1D metrics
+            y_hat = y_hat.squeeze(-1)  # optional, for compatibility with 1D metrics
 
         loss = self.loss_fn(y_hat, y)
         return loss
@@ -69,7 +73,7 @@ class LitTabularForecaster(L.LightningModule):
 
 class TabularWindowedDataModule(L.LightningDataModule):
     def __init__(self, X_train, y_train, X_val=None, y_val=None, X_test=None, y_test=None,
-                 lookback_window=1, n_features=1, batch_size=64, num_workers=0):
+                 n_features=1, batch_size=64, num_workers=0):
         super().__init__()
         self.save_hyperparameters()
         self.X_train = X_train
@@ -78,31 +82,26 @@ class TabularWindowedDataModule(L.LightningDataModule):
         self.y_val = y_val
         self.X_test = X_test
         self.y_test = y_test
-        self.lookback_window = lookback_window
         self.n_features = n_features
         self.batch_size = batch_size
         self.num_workers = num_workers
 
     def setup(self, stage: Optional[str] = None):
-        # Reshape X arrays: (n_samples, lookback_window, n_features) -> (n_samples, lookback_window * n_features)
         if self.X_train is not None:
-            self.X_train_flat = self.X_train.reshape(self.X_train.shape[0], -1)
             self.y_train_tensor = torch.tensor(self.y_train, dtype=torch.float32)
-            self.X_train_tensor = torch.tensor(self.X_train_flat, dtype=torch.float32)
+            self.X_train_tensor = torch.tensor(self.X_train, dtype=torch.float32)
             self.train_dataset = TensorDataset(self.X_train_tensor, self.y_train_tensor)
         else:
             self.train_dataset = None
         if self.X_val is not None:
-            self.X_val_flat = self.X_val.reshape(self.X_val.shape[0], -1)
             self.y_val_tensor = torch.tensor(self.y_val, dtype=torch.float32)
-            self.X_val_tensor = torch.tensor(self.X_val_flat, dtype=torch.float32)
+            self.X_val_tensor = torch.tensor(self.X_val, dtype=torch.float32)
             self.val_dataset = TensorDataset(self.X_val_tensor, self.y_val_tensor)
         else:
             self.val_dataset = None
         if self.X_test is not None:
-            self.X_test_flat = self.X_test.reshape(self.X_test.shape[0], -1)
             self.y_test_tensor = torch.tensor(self.y_test, dtype=torch.float32)
-            self.X_test_tensor = torch.tensor(self.X_test_flat, dtype=torch.float32)
+            self.X_test_tensor = torch.tensor(self.X_test, dtype=torch.float32)
             self.test_dataset = TensorDataset(self.X_test_tensor, self.y_test_tensor)
         else:
             self.test_dataset = None
