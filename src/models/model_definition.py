@@ -10,10 +10,6 @@ import torch
 
 torch.set_float32_matmul_precision('high')
 
-
-from config import get_nbeats_config, get_nhits_config
-
-
 # Import the functions that provide the configs
 from config import get_nhits_config, get_nbeats_config
 

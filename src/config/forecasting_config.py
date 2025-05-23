@@ -8,15 +8,15 @@ from neuralforecast.losses.pytorch import MAE, MSE, RMSE, MQLoss, DistributionLo
 # Pipeline Configuration
 FORECAST_HORIZON = 7
 LEVELS = [80, 90]
-TEST_LENGTH_MULTIPLIER = 2  # test_length = horizon * 2
+TEST_LENGTH_MULTIPLIER = 5
 SEED = 42
 
 # Data Configuration
 DATA_PATH = 'data/final/dataset.parquet'
 DATE_COLUMN = 'Date'
+DATE_RENAMED = 'ds'
 TARGET_COLUMN = 'btc_close'
 TARGET_RENAMED = 'y'
-DATE_RENAMED = 'ds'
 UNIQUE_ID_VALUE = 'Bitcoin'
 
 # Model Configuration

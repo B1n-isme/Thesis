@@ -14,14 +14,17 @@ Usage:
 """
 import argparse
 from datetime import datetime
+from utilsforecast.plotting import plot_series
 
 from src.utils.forecasting_utils import setup_environment
+from src.utils.visualization import ForecastVisualizer
 from src.data.data_preparation import prepare_forecasting_data
 from src.pipeline.hyperparameter_tuning import run_complete_hpo_pipeline
 from src.pipeline.cross_validation import run_complete_cv_pipeline
 from src.models.model_training import create_and_train_final_model
 from src.pipeline.prediction_evaluation import run_prediction_evaluation
 from src.config.forecasting_config import SEED, RAY_ADDRESS, RAY_NUM_CPUS, RAY_NUM_GPUS
+
 
 
 def main(skip_hpo=False):
@@ -53,7 +56,7 @@ def main(skip_hpo=False):
         print("STEP 2: HYPERPARAMETER OPTIMIZATION")
         print("=" * 50)
         
-        nf_hpo, all_best_configs, csv_filename = run_complete_hpo_pipeline(df_development)
+        nf_hpo, csv_filename = run_complete_hpo_pipeline(df_development)
         if csv_filename:
             print(f"HPO completed. Best configurations saved to: {csv_filename}")
         else:
@@ -106,15 +109,22 @@ def main(skip_hpo=False):
     print("=" * 50)
     
     if evaluation_results:
-        print(f"Model: {evaluation_results['model_name']}")
-        print(f"Test MAE: {evaluation_results['test_mae']:.4f}")
-        print(f"Test RMSE: {evaluation_results['test_rmse']:.4f}")
-        print(f"Evaluation DataFrame shape: {evaluation_results['evaluation_df'].shape}")
+        # print(f"Model: {evaluation_results['model_name']}")
+        # print(f"Test MAE: {evaluation_results['test_mae']:.4f}")
+        # print(f"Test RMSE: {evaluation_results['test_rmse']:.4f}")
+        # print(f"Evaluation DataFrame shape: {evaluation_results['evaluation_df'].shape}")
+        print(f"Evaluation DataFrame: {evaluation_results.head()}")
     else:
         print("Evaluation failed - no results available.")
     
     print(f"\nPipeline execution finished at: {datetime.now()} (Ho Chi Minh City Time)")
     print("=" * 50)
+
+    # 8. Plot visualization
+    vis = ForecastVisualizer(df_final_holdout_test, predictions_on_test)
+    fig = vis.plot(ids=[0,1], levels=[80,95], max_insample_length=36, plot_anomalies=True)
+    out_path = vis.save(fig, save_dir='outputs', filename='forecast.png')
+    print(f"Plot saved to {out_path}")
 
 
 if __name__ == "__main__":

@@ -27,12 +27,8 @@ def load_and_prepare_data():
     return df
 
 
-def split_data(df, horizon=None, test_length_multiplier=None):
+def split_data(df, horizon, test_length_multiplier):
     """Split data into development and final holdout test sets."""
-    if horizon is None:
-        horizon = FORECAST_HORIZON
-    if test_length_multiplier is None:
-        test_length_multiplier = TEST_LENGTH_MULTIPLIER
     
     test_length = horizon * test_length_multiplier
     
@@ -55,8 +51,13 @@ def split_data(df, horizon=None, test_length_multiplier=None):
     return df_development, df_final_holdout_test
 
 
-def prepare_forecasting_data():
+def prepare_forecasting_data(horizon=None, test_length_multiplier=None):
     """Complete data preparation pipeline."""
+    if horizon is None:
+        horizon = FORECAST_HORIZON
+    if test_length_multiplier is None:
+        test_length_multiplier = TEST_LENGTH_MULTIPLIER
+
     # Load and prepare data
     df = load_and_prepare_data()
     
@@ -64,7 +65,7 @@ def prepare_forecasting_data():
     hist_exog_list = get_historical_exogenous_features(df)
     
     # Split data
-    df_development, df_final_holdout_test = split_data(df)
+    df_development, df_final_holdout_test = split_data(df, horizon, test_length_multiplier)
     
     return df, df_development, df_final_holdout_test, hist_exog_list
 

@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # Test loading best model configuration
     model, params, loss = load_best_model_config('AutoNHITS')
     if model is not None:
-        print(f"\nSuccessfully loaded model configuration for NHITS")
+        print("\nSuccessfully loaded model configuration for NHITS")
         print(f"Model: {model}")
         print(f"Loss: {loss}")
     else:

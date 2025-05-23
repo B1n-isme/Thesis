@@ -29,7 +29,7 @@ import torch
 import random
 
 
-from model_definition import get_auto_models
+from models.model_definition import get_auto_models
 
 
 def seed_everything(seed=42):

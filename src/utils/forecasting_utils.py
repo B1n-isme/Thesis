@@ -33,7 +33,7 @@ def setup_environment(seed=42, ray_config=None):
     if ray_config is None:
         ray_config = {
             'address': 'local',
-            'num_cpus': torch.cuda.device_count() or 1,
+            'num_cpus': torch.cuda.device_count(),
             'num_gpus': torch.cuda.device_count()
         }
     

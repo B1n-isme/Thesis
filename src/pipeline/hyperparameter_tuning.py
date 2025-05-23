@@ -5,7 +5,7 @@ import os
 import pandas as pd
 from neuralforecast import NeuralForecast
 from neuralforecast.losses.pytorch import MAE
-from model_definition import get_auto_models
+from models.model_definition import get_auto_models
 from src.config.forecasting_config import (
     FORECAST_HORIZON, LEVELS, FREQUENCY, LOCAL_SCALER_TYPE,
     NUM_SAMPLES_PER_MODEL, TUNING_RESULTS_DIR
@@ -122,7 +122,7 @@ def run_complete_hpo_pipeline(df_development, horizon=None, loss_fn=None, num_sa
     # Save best configurations
     csv_filename = save_best_configurations(all_best_configs)
     
-    return nf_hpo, all_best_configs, csv_filename
+    return nf_hpo, csv_filename
 
 
 if __name__ == "__main__":
@@ -132,5 +132,5 @@ if __name__ == "__main__":
     _, df_development, _, _ = prepare_forecasting_data()
     
     # Run HPO
-    nf_hpo, configs, csv_file = run_complete_hpo_pipeline(df_development)
+    nf_hpo, csv_file = run_complete_hpo_pipeline(df_development)
     print(f"HPO completed. Results saved to: {csv_file}") 

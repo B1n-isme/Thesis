@@ -30,40 +30,45 @@ def evaluate_predictions(df_final_holdout_test, predictions_on_test, model_name=
     # If predict() output doesn't perfectly align or you need more control, consider predict(futr_df=...).
     # Let's merge based on 'unique_id' and 'ds'.
     
-    final_evaluation_df = pd.merge(
-        df_final_holdout_test,
-        predictions_on_test,
-        on=['unique_id', 'ds'],
-        how='left'  # Use left to keep all test points; predictions might be shorter if h < test_length
-    )
-    final_evaluation_df.dropna(inplace=True)  # If some predictions couldn't be made or aligned.
+    # final_evaluation_df = pd.merge(
+    #     df_final_holdout_test,
+    #     predictions_on_test,
+    #     on=['unique_id', 'ds'],
+    #     how='left'  # Use left to keep all test points; predictions might be shorter if h < test_length
+    # )
+    # final_evaluation_df.dropna(inplace=True)  # If some predictions couldn't be made or aligned.
     
-    print(f"Final evaluation dataframe columns: {final_evaluation_df.columns.tolist()}")
-    print(f"Final evaluation dataframe shape: {final_evaluation_df.shape}")
+    # print(f"Final evaluation dataframe columns: {final_evaluation_df.columns.tolist()}")
+    # print(f"Final evaluation dataframe shape: {final_evaluation_df.shape}")
     
-    if final_evaluation_df.empty:
-        print("Warning: No aligned predictions found for evaluation.")
-        return None
+    # if final_evaluation_df.empty:
+    #     print("Warning: No aligned predictions found for evaluation.")
+    #     return None
     
     # Calculate evaluation metrics
-    from utilsforecast.losses import mae, rmse
+    from utilsforecast.evaluation import evaluate
+    from utilsforecast.losses import mse, mae, rmse
     
-    test_actuals = final_evaluation_df['y']
-    test_preds = final_evaluation_df[model_name]
+    # test_actuals = final_evaluation_df['y']
+    # test_preds = final_evaluation_df[model_name]
     
-    final_mae = mae(test_actuals, test_preds)
-    final_rmse = rmse(test_actuals, test_preds)
+    # final_mae = mae(test_actuals, test_preds)
+    # final_rmse = rmse(test_actuals, test_preds)
     
-    print(f"\nFinal Evaluation on Holdout Test Set for {model_name}:")
-    print(f"  Test MAE: {final_mae:.4f}")
-    print(f"  Test RMSE: {final_rmse:.4f}")
+    # print(f"\nFinal Evaluation on Holdout Test Set for {model_name}:")
+    # print(f"  Test MAE: {final_mae:.4f}")
+    # print(f"  Test RMSE: {final_rmse:.4f}")
     
-    return {
-        'model_name': model_name,
-        'test_mae': final_mae,
-        'test_rmse': final_rmse,
-        'evaluation_df': final_evaluation_df
-    }
+    # return {
+    #     'model_name': model_name,
+    #     'test_mae': final_mae,
+    #     'test_rmse': final_rmse,
+    #     'evaluation_df': final_evaluation_df
+    # }
+
+    evaluation_df = evaluate(predictions_on_test.drop(columns='cutoff'), metrics=[mse, mae, rmse])
+    evaluation_df['best_model'] = evaluation_df.drop(columns=['metric', 'unique_id']).idxmin(axis=1)
+    return evaluation_df
 
 
 def run_prediction_evaluation(nf_final_train, df_final_holdout_test, model_name='NHITS'):
@@ -93,8 +98,9 @@ if __name__ == "__main__":
         
         if eval_results is not None:
             print(f"\nPrediction and evaluation completed successfully!")
-            print(f"Test MAE: {eval_results['test_mae']:.4f}")
-            print(f"Test RMSE: {eval_results['test_rmse']:.4f}")
+            # print(f"Test MAE: {eval_results['test_mae']:.4f}")
+            # print(f"Test RMSE: {eval_results['test_rmse']:.4f}")
+            print(f'Evaluation results: {eval_results}')
         else:
             print("Evaluation failed - no aligned predictions found.")
     else:
